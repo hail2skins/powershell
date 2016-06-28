@@ -5,22 +5,42 @@ foreach ($ap1resourcegroup in $ap1resourcegroups) {
 
     foreach ($vm in $vms) {
        
-        $availabilitysetreference = get-azurermvm -name $vm.name -ResourceGroupName $ap1resourcegroup | select -expand availabilitysetreference
+       $reference = get-azurermvm -name $vm.name -ResourceGroupName $ap1resourcegroup 
        
-       if ($availabilitysetreference)
+       if ($reference.availabilitysetreference)
        {
           
-          $string = $availabilitysetreference.id.split("/")
-          $availability_set_name = $string[-1]
+          $array = $reference.availabilitysetreference.id.split("/")
+          $availability_set_name = $array[-1]
+       }
+       else
+       {
+           $availability_set_name = "NULL"
        }
 
+       if ($reference.StorageProfile.ImageReference)
+       {
+            $ostype = $reference.StorageProfile.ImageReference.offer
+            $osversion = $reference.StorageProfile.ImageReference.sku
+       }
+       else
+       {
+            $ostype = $reference.StorageProfile.osdisk.ostype
+            $osversion = "NULL"
+       }
+
+       $vmsize = $reference.HardwareProfile.vmsize
+
        $props = @{'Name' = $vm.name;
-                  'Availability Set' = $availability_set_name
+                  'Resource Group' = $vm.resourcegroupname;
+                  'Availability Set' = $availability_set_name;
+                  'OS' = $ostype;
+                  'VM Size' = $vmsize;
+                  'OS Version' = $osversion
                  }
 
        $obj = New-Object -TypeName PSObject -Property $props
        #$obj.PSObject.TypeNames.Insert(0,'Art.SystemInfo')
-       Write-Output $obj       
-        
+       export-csv -InputObject $obj -path c:\github\scripts\apacazure.csv -append
     }
 }
