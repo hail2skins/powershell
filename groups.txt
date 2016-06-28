@@ -1,0 +1,14 @@
+pcf-javelin-dev-sm
+pcf-javelin-dev-sa
+pcf-javelin-dev-sd
+pcf-javelin-test-sm
+pcf-javelin-test-sa
+pcf-javelin-test-sd
+pcf-javelin-stage-sm
+pcf-javelin-stage-sa
+pcf-javelin-stage-sd
+pcf-javelin-prod-sm
+pcf-javelin-prod-sa
+pcf-javelin-prod-sd
+pcf-javelin-om
+pcf-javelin-oa
