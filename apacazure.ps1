@@ -1,11 +1,8 @@
-$ap1resourcegroups = Get-AzureRmResourceGroup | where resourcegroupname -like '*ap1*' | select -expand resourcegroupname
-
-foreach ($ap1resourcegroup in $ap1resourcegroups) {
-    $vms = get-azurermvm -ResourceGroupName $ap1resourcegroup
+$vms = Get-AzureRmVM | where location -eq 'eastasia'
 
     foreach ($vm in $vms) {
        
-       $reference = get-azurermvm -name $vm.name -ResourceGroupName $ap1resourcegroup 
+       $reference = get-azurermvm -name $vm.name -ResourceGroupName $vm.ResourceGroupName 
        
        if ($reference.availabilitysetreference)
        {
@@ -29,18 +26,51 @@ foreach ($ap1resourcegroup in $ap1resourcegroups) {
             $osversion = "NULL"
        }
 
+       if ($reference.diagnosticsprofile.BootDiagnostics.StorageUri)
+       {
+            $storage = $reference.diagnosticsprofile.BootDiagnostics.StorageUri
+       }
+       else
+       {
+            $storage = "NULL"
+       }
+
+       $networkinterfacearray = $vm.NetworkInterfaceIDs.split('/')
+       $networkinterfacename = $networkinterfacearray[-1]
+       $networkreference = get-azurermnetworkinterface -name $networkinterfacename -resourcegroupname $vm.ResourceGroupName
+
+       $ip = $networkreference.ipconfigurations.privateipaddress
+       $subnetcompare = $networkreference.ipconfigurations.subnet.id
+       $subnetarray = $networkreference.ipconfigurations.subnet.id.split("/")
+       $subnet = $subnetarray[-1]
+
+       $nsgreference = get-azurermnetworksecuritygroup | where {$_.subnets.id -contains $subnetcompare}
+       $nsg = $nsgreference.Name
+       $nsgresourcegroup = $nsgreference.ResourceGroupName
+       
+       
+       #below two are broken
+       #$nsgarray = $networkreference.NetworkSecurityGroup.id.split("/")
+       #$nsg = $nsgarray[-1]
+
+
        $vmsize = $reference.HardwareProfile.vmsize
 
        $props = @{'Name' = $vm.name;
-                  'Resource Group' = $vm.resourcegroupname;
-                  'Availability Set' = $availability_set_name;
+                  'ResourceGroup' = $vm.resourcegroupname;
+                  'AvailabilitySet' = $availability_set_name;
                   'OS' = $ostype;
-                  'VM Size' = $vmsize;
-                  'OS Version' = $osversion
+                  'VMSize' = $vmsize;
+                  'OSVersion' = $osversion;
+                  'Storage' = $storage;
+                  'IP' = $ip;
+                  'Subnet' = $subnet;
+                  'NSG' = $nsg;
+                  'NSGResourceGroup' = $nsgresourcegroup
                  }
 
        $obj = New-Object -TypeName PSObject -Property $props
        #$obj.PSObject.TypeNames.Insert(0,'Art.SystemInfo')
        export-csv -InputObject $obj -path c:\github\scripts\apacazure.csv -append
+       write-host $obj 
     }
-}
